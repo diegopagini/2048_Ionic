@@ -8,7 +8,7 @@
       "schematics": {},
       "root": "",
       "sourceRoot": "src",
-      "prefix": "2048",
+      "prefix": "tfe",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:browser",

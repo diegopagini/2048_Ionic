@@ -8,13 +8,74 @@ $main-color: #a0b6bb;
     max-width: 300px;
 
     ion-col {
+      align-items: center;
       border-radius: 0.25rem;
       border: 0.25rem solid $main-color;
+      display: flex;
+      font-size: 1.875rem;
+      font-weight: 700;
       height: 3.75rem;
+      justify-content: center;
     }
 
     .grid-cell {
       background-color: #727a7a;
+    }
+
+    .number-2 {
+      background: #eee4da;
+    }
+
+    .number-4 {
+      background: #eee1c9;
+    }
+    .number-8 {
+      background: #f3b27a;
+      color: #f9f6f2;
+    }
+
+    .number-16 {
+      background: #f69664;
+      color: #f9f6f2;
+    }
+
+    .number-32 {
+      background: #f77c5f;
+      color: #f9f6f2;
+    }
+
+    .number-64 {
+      background: #f75f3b;
+      color: #f9f6f2;
+    }
+
+    .number-128 {
+      background: #edd073;
+      color: #f9f6f2;
+    }
+
+    .number-256 {
+      background: #edcc62;
+      color: #f9f6f2;
+    }
+
+    .number-512 {
+      background: #edc950;
+      color: #f9f6f2;
+    }
+
+    .number-1024 {
+      background: #edc53f;
+      color: #f9f6f2;
+      font-size: 1.375rem;
+      padding-top: 0.75rem;
+    }
+
+    .number-2048 {
+      background: #edc22e;
+      color: #f9f6f2;
+      font-size: 1.375rem;
+      padding-top: 0.75rem;
     }
   }
 }

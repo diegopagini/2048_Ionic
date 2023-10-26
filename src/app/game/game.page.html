@@ -3,14 +3,15 @@
     <ion-row></ion-row>
     <ion-row>
       <ion-col>
-        <ion-grid class="game__board">
+        <ion-grid class="game__board" #gameBoard>
           <ion-row *ngFor="let row of rows">
             <ion-col
               *ngFor="let col of cols"
               [attr.id]="row+''+col"
-              [ngClass]="{'grid-cell': !board[row][col]}"
+              [ngClass]="{'grid-cell': !board[row][col] }"
+              [class]="board[row][col] ? 'number-' + board[row][col].value : ''"
             >
-              {{board[row][col] ? board[row][col] : ''}}
+              {{board[row][col] ? board[row][col].value : ''}}
             </ion-col>
           </ion-row>
         </ion-grid>

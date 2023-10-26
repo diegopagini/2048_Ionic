@@ -1,11 +1,17 @@
-<ion-content [fullscreen]="true">
+<ion-content class="game" [fullscreen]="true">
   <ion-grid>
     <ion-row></ion-row>
     <ion-row>
       <ion-col>
-        <ion-grid *ngFor="let row of rows">
-          <ion-row>
-            <ion-col> </ion-col>
+        <ion-grid class="game__board">
+          <ion-row *ngFor="let row of rows">
+            <ion-col
+              *ngFor="let col of cols"
+              [attr.id]="row+''+col"
+              [ngClass]="{'grid-cell': !board[row][col]}"
+            >
+              {{board[row][col] ? board[row][col] : ''}}
+            </ion-col>
           </ion-row>
         </ion-grid>
       </ion-col>

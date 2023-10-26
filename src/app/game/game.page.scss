@@ -1,0 +1,20 @@
+$main-color: #a0b6bb;
+
+.game {
+  &__board {
+    background-color: $main-color;
+    border-radius: 0.25rem;
+    border: 0.25rem solid $main-color;
+    max-width: 300px;
+
+    ion-col {
+      border-radius: 0.25rem;
+      border: 0.25rem solid $main-color;
+      height: 3.75rem;
+    }
+
+    .grid-cell {
+      background-color: #727a7a;
+    }
+  }
+}

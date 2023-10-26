@@ -7,14 +7,9 @@ import {
 } from '@angular/core';
 import { GestureController, GestureDetail } from '@ionic/angular';
 
+import { Direction } from '../interfaces/direction.enum';
+import { NextPositionFree } from '../interfaces/next-position.interface';
 import { Cell } from '../models/cell';
-
-enum Direction {
-  up = 0,
-  down = 1,
-  left = 2,
-  right = 3,
-}
 
 @Component({
   selector: 'tfe-game',
@@ -31,6 +26,7 @@ export class GamePage implements OnInit, AfterViewInit {
     .fill(0)
     .map((_, index: number) => index);
   private direction: Direction;
+  private hasMovement = false;
 
   constructor(private readonly _gestureController: GestureController) {}
 
@@ -47,24 +43,28 @@ export class GamePage implements OnInit, AfterViewInit {
     if (detail.deltaX < 0) {
       // Left move.
       this.direction = Direction.left;
-      console.log('left');
+      this.moveLeft();
     } else {
       // Right move.
       this.direction = Direction.right;
-      console.log('right');
+      this.moveRight();
     }
+
+    this.checkMove();
   }
 
   private onYSwipe(detail: GestureDetail): void {
     if (detail.deltaY < 0) {
       // Up move.
       this.direction = Direction.up;
-      console.log('up');
+      this.moveUp();
     } else {
       // Down move.
       this.direction = Direction.down;
-      console.log('down');
+      this.moveDown();
     }
+
+    this.checkMove();
   }
 
   private initSwipe(): void {
@@ -103,9 +103,178 @@ export class GamePage implements OnInit, AfterViewInit {
       row = Math.floor(Math.random() * this.board.length);
     } while (this.board[row][col] !== null);
 
+    this.board[row][col] = new Cell();
     const probNum4 = Math.floor(Math.random() * 100) + 1;
 
-    if (probNum4 <= 25) this.board[row][col] = new Cell(4);
-    else this.board[row][col] = new Cell(2);
+    if (probNum4 <= 25) this.board[row][col].value = 4;
+    else this.board[row][col].value = 2;
+  }
+
+  private moveLeft(): void {
+    for (let row = 0; row < this.board.length; row++) {
+      for (let col = 1; col < this.board[row].length; col++) {
+        this.processPosition(row, col);
+      }
+    }
+  }
+
+  private moveRight(): void {
+    for (let row = 0; row < this.board.length; row++) {
+      for (let col = this.board[row].length - 2; col >= 0; col--) {
+        this.processPosition(row, col);
+      }
+    }
+  }
+
+  private moveUp(): void {
+    for (let row = 1; row < this.board.length; row++) {
+      for (let col = 0; col < this.board[row].length; col++) {
+        this.processPosition(row, col);
+      }
+    }
+  }
+
+  private moveDown(): void {
+    for (let row = this.board.length - 2; row >= 0; row--) {
+      for (let col = 0; col < this.board[row].length; col++) {
+        this.processPosition(row, col);
+      }
+    }
+  }
+
+  private nextPositionFree({
+    originalRow,
+    originalCol,
+    originalNumber,
+  }: NextPositionFree): number[] | null {
+    let newRow: number | undefined = undefined;
+    let newCol: number | undefined = undefined;
+    let found = false;
+
+    switch (this.direction) {
+      case Direction.left:
+        newRow = originalRow;
+        for (let col = originalCol - 1; col >= 0 && !found; col--) {
+          if (this.board[originalRow][col] !== null) {
+            found = true;
+
+            if (this.board[originalRow][col].blocked) newCol = col + 1;
+            else if (this.board[originalRow][col].value === originalNumber)
+              newCol = col;
+            else if (col + 1 !== originalCol) newCol = col + 1;
+          }
+        }
+
+        if (!found) newCol = 0;
+
+        break;
+
+      case Direction.right:
+        newRow = originalRow;
+        for (
+          let col = originalCol + 1;
+          col < this.board[originalRow].length && !found;
+          col++
+        ) {
+          if (this.board[originalRow][col] !== null) {
+            found = true;
+
+            if (this.board[originalRow][col].blocked) newCol = col - 1;
+            else if (this.board[originalRow][col].value === originalNumber)
+              newCol = col;
+            else if (col - 1 !== originalCol) newCol = col - 1;
+          }
+
+          if (!found) newCol = this.board[originalRow].length - 1;
+        }
+        break;
+
+      case Direction.up:
+        newCol = originalCol;
+        for (let row = originalRow - 1; row >= 0 && !found; row--) {
+          if (this.board[row][originalCol] !== null) {
+            found = true;
+
+            if (this.board[row][originalCol].blocked) newRow = row + 1;
+            else if (this.board[row][originalCol].value === originalNumber)
+              newRow = row;
+            else if (row + 1 !== originalRow) newRow = row + 1;
+          }
+
+          if (!found) newRow = 0;
+        }
+        break;
+
+      case Direction.down:
+        newCol = originalCol;
+        for (
+          let row = originalRow + 1;
+          row < this.board.length && !found;
+          row++
+        ) {
+          if (this.board[row][originalCol] !== null) {
+            found = true;
+
+            if (this.board[row][originalCol].blocked) newRow = row - 1;
+            else if (this.board[row][originalCol].value === originalNumber)
+              newRow = row;
+            else if (row - 1 !== originalRow) newRow = row - 1;
+          }
+
+          if (!found) newRow = this.board.length - 1;
+        }
+
+        break;
+    }
+
+    if (newRow !== undefined && newCol !== undefined) return [newRow, newCol];
+
+    return null;
+  }
+
+  private processPosition(row: number, col: number): void {
+    const cell = this.board[row][col];
+    if (cell !== null) {
+      const nextPosition = this.nextPositionFree({
+        originalRow: row,
+        originalCol: col,
+        originalNumber: cell.value,
+      });
+
+      if (nextPosition) {
+        const newRow = nextPosition[0];
+        const newCol = nextPosition[1];
+
+        if (!this.board[newRow][newCol])
+          this.board[newRow][newCol] = new Cell();
+
+        if (cell.value === this.board[newRow][newCol].value) {
+          const points = cell.value * 2;
+          this.board[newRow][newCol].value = points;
+          this.board[newRow][newCol].blocked = true;
+        } else {
+          this.board[newRow][newCol] = cell;
+        }
+
+        this.board[row][col] = null as any;
+        this.hasMovement = true;
+      }
+    }
+  }
+
+  private clearBloquedCells(): void {
+    for (let row = 0; row < this.board.length; row++) {
+      for (let col = 0; col < this.board[row].length; col++) {
+        if (this.board[row][col] !== null) this.board[row][col].blocked = false;
+      }
+    }
+  }
+
+  private checkMove(): void {
+    if (this.hasMovement) {
+      this.generateRandomNumber();
+      this.hasMovement = false;
+      this.clearBloquedCells();
+    }
   }
 }

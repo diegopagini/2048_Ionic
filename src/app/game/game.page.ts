@@ -6,10 +6,12 @@ import {
   ViewChild,
 } from '@angular/core';
 import { GestureController, GestureDetail } from '@ionic/angular';
+import { TranslateService } from '@ngx-translate/core';
 
 import { Direction } from '../interfaces/direction.enum';
 import { NextPositionFree } from '../interfaces/next-position.interface';
 import { Cell } from '../models/cell';
+import { AlertService } from '../services/alert.service';
 
 @Component({
   selector: 'tfe-game',
@@ -18,19 +20,22 @@ import { Cell } from '../models/cell';
 })
 export class GamePage implements OnInit, AfterViewInit {
   @ViewChild('gameBoard', { read: ElementRef }) gameBoard: ElementRef;
-  board: Cell[][] = Array.from({ length: 4 }, () => new Array(4).fill(null));
-  cols: number[] = Array(4)
-    .fill(0)
-    .map((_, index: number) => index);
-  rows: number[] = Array(4)
-    .fill(0)
-    .map((_, index: number) => index);
+  board: Cell[][];
+  cols: number[];
+  points = 0;
   private direction: Direction;
   private hasMovement = false;
+  private pointsRounded = 0;
+  rows: number[];
 
-  constructor(private readonly _gestureController: GestureController) {}
+  constructor(
+    private readonly _alertService: AlertService,
+    private readonly _gestureController: GestureController,
+    private readonly _translateService: TranslateService
+  ) {}
 
   ngOnInit(): void {
+    this.newGame();
     this.generateRandomNumber();
     this.generateRandomNumber();
   }
@@ -252,6 +257,8 @@ export class GamePage implements OnInit, AfterViewInit {
           const points = cell.value * 2;
           this.board[newRow][newCol].value = points;
           this.board[newRow][newCol].blocked = true;
+          this.points += points;
+          this.pointsRounded += points;
         } else {
           this.board[newRow][newCol] = cell;
         }
@@ -271,10 +278,93 @@ export class GamePage implements OnInit, AfterViewInit {
   }
 
   private checkMove(): void {
-    if (this.hasMovement) {
+    if (this.winGame()) {
+      this._alertService.alertCustomButtons({
+        header: this._translateService.instant('label.win.game.title'),
+        message: this._translateService.instant('label.game.content', {
+          points: this.points,
+        }),
+        buttons: [
+          {
+            text: this._translateService.instant('label.new.game'),
+            handler: () => {
+              this.newGame();
+            },
+          },
+          {
+            text: this._translateService.instant('label.share'),
+            handler: () => {},
+          },
+        ],
+        backdropDismiss: false,
+      });
+    } else if (this.loseGame()) {
+      this._alertService.alertCustomButtons({
+        header: this._translateService.instant('label.lose.game.title'),
+        message: this._translateService.instant('label.game.content', {
+          points: this.points,
+        }),
+        buttons: [
+          {
+            text: this._translateService.instant('label.new.game'),
+            handler: () => {
+              this.newGame();
+            },
+          },
+          {
+            text: this._translateService.instant('label.share'),
+            handler: () => {},
+          },
+        ],
+        backdropDismiss: false,
+      });
+    } else if (this.hasMovement) {
       this.generateRandomNumber();
       this.hasMovement = false;
+      this.pointsRounded = 0;
       this.clearBloquedCells();
     }
+  }
+
+  private winGame(): boolean {
+    for (let row = 0; row < this.board.length; row++) {
+      for (let col = 0; col < this.board[row].length; col++) {
+        if (this.board[row][col] !== null && this.board[row][col].value >= 2048)
+          return true;
+      }
+    }
+    return false;
+  }
+
+  private loseGame(): boolean {
+    for (let row = 0; row < this.board.length; row++) {
+      for (let col = 0; col < this.board[row].length; col++) {
+        if (this.board[row][col] === null) return false;
+        else if (
+          (this.board[row - 1] &&
+            this.board[row - 1][col].value === this.board[row][col].value) ||
+          (this.board[row][col + 1] &&
+            this.board[row][col + 1].value === this.board[row][col].value) ||
+          (this.board[row + 1] &&
+            this.board[row + 1][col].value === this.board[row][col].value) ||
+          (this.board[row - 1] &&
+            this.board[row][col - 1].value === this.board[row][col].value)
+        )
+          return false;
+      }
+    }
+
+    return true;
+  }
+
+  private newGame(): void {
+    this.board = Array.from({ length: 4 }, () => new Array(4).fill(null));
+    this.cols = Array(4)
+      .fill(0)
+      .map((_, index: number) => index);
+    this.rows = Array(4)
+      .fill(0)
+      .map((_, index: number) => index);
+    this.points = 0;
   }
 }

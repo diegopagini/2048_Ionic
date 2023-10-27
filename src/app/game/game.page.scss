@@ -10,6 +10,10 @@ $main-color: #a0b6bb;
     justify-content: center;
   }
 
+  &__info {
+    max-width: 300px;
+  }
+
   &__board {
     background-color: $main-color;
     border-radius: 0.25rem;

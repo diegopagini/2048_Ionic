@@ -7,11 +7,13 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
+import { Share, ShareOptions } from '@capacitor/share';
 import {
   Animation,
   AnimationController,
   GestureController,
   GestureDetail,
+  Platform,
 } from '@ionic/angular';
 import { TranslateService } from '@ngx-translate/core';
 
@@ -47,6 +49,7 @@ export class GamePage implements OnInit, AfterViewInit {
     private readonly _alertService: AlertService,
     private readonly _animationController: AnimationController,
     private readonly _gestureController: GestureController,
+    private readonly _platform: Platform,
     private readonly _translateService: TranslateService
   ) {}
 
@@ -350,7 +353,10 @@ export class GamePage implements OnInit, AfterViewInit {
           },
           {
             text: this._translateService.instant('label.share'),
-            handler: () => {},
+            handler: () => {
+              this.sharePuntuation();
+              this.newGame();
+            },
           },
         ],
         backdropDismiss: false,
@@ -370,7 +376,10 @@ export class GamePage implements OnInit, AfterViewInit {
           },
           {
             text: this._translateService.instant('label.share'),
-            handler: () => {},
+            handler: () => {
+              this.sharePuntuation();
+              this.newGame();
+            },
           },
         ],
         backdropDismiss: false,
@@ -495,5 +504,24 @@ export class GamePage implements OnInit, AfterViewInit {
     }
 
     this.animations.push(animation);
+  }
+
+  private async sharePuntuation(): Promise<void> {
+    const shareOptions: ShareOptions = {
+      title: '2048',
+      text: this._translateService.instant('label.share.dialog.title', {
+        points: this.points,
+      }),
+      dialogTitle: this._translateService.instant('label.share.dialog.title', {
+        points: this.points,
+      }),
+    };
+
+    if (this._platform.is('android'))
+      shareOptions.url = 'https://play.google.com/';
+    else if (this._platform.is('ios'))
+      shareOptions.url = 'http://apple.com/es/app-store';
+
+    await Share.share(shareOptions);
   }
 }

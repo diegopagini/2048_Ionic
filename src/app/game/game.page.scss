@@ -1,6 +1,15 @@
 $main-color: #a0b6bb;
 
 .game {
+  --background: #faf8ef;
+
+  &__center {
+    align-items: center;
+    display: flex;
+    height: 100%;
+    justify-content: center;
+  }
+
   &__board {
     background-color: $main-color;
     border-radius: 0.25rem;
@@ -78,5 +87,16 @@ $main-color: #a0b6bb;
       font-size: 1.375rem;
       padding-top: 0.75rem;
     }
+  }
+
+  &__points {
+    color: $main-color;
+    font-size: 2.8125rem;
+  }
+
+  &__points-scored {
+    color: $main-color;
+    font-size: 1.4rem;
+    position: absolute;
   }
 }

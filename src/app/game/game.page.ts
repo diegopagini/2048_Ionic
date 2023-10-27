@@ -1,13 +1,21 @@
+import { DOCUMENT } from '@angular/common';
 import {
   AfterViewInit,
   Component,
   ElementRef,
+  Inject,
   OnInit,
   ViewChild,
 } from '@angular/core';
-import { GestureController, GestureDetail } from '@ionic/angular';
+import {
+  Animation,
+  AnimationController,
+  GestureController,
+  GestureDetail,
+} from '@ionic/angular';
 import { TranslateService } from '@ngx-translate/core';
 
+import { CellAnimation } from '../interfaces/cell-animation.interface';
 import { Direction } from '../interfaces/direction.enum';
 import { NextPositionFree } from '../interfaces/next-position.interface';
 import { Cell } from '../models/cell';
@@ -21,55 +29,80 @@ import { AlertService } from '../services/alert.service';
 export class GamePage implements OnInit, AfterViewInit {
   @ViewChild('gameBoard', { read: ElementRef }) gameBoard: ElementRef;
   board: Cell[][];
-  cols: number[];
+  cols = Array(4)
+    .fill(0)
+    .map((_, index: number) => index);
+  rows = Array(4)
+    .fill(0)
+    .map((_, index: number) => index);
   points = 0;
+  private animations: Animation[] = [];
   private direction: Direction;
   private hasMovement = false;
   private pointsRounded = 0;
-  rows: number[];
+  private isMoving = false;
 
   constructor(
+    @Inject(DOCUMENT) private _document: Document,
     private readonly _alertService: AlertService,
+    private readonly _animationController: AnimationController,
     private readonly _gestureController: GestureController,
     private readonly _translateService: TranslateService
   ) {}
 
   ngOnInit(): void {
     this.newGame();
-    this.generateRandomNumber();
-    this.generateRandomNumber();
   }
 
   ngAfterViewInit(): void {
     this.initSwipe();
   }
 
-  private onXSwipe(detail: GestureDetail): void {
-    if (detail.deltaX < 0) {
-      // Left move.
-      this.direction = Direction.left;
-      this.moveLeft();
-    } else {
-      // Right move.
-      this.direction = Direction.right;
-      this.moveRight();
-    }
+  newGame(): void {
+    this.animations = [];
+    this.board = Array.from({ length: 4 }, () => new Array(4).fill(null));
+    this.hasMovement = false;
+    this.isMoving = false;
+    this.points = 0;
+    this.pointsRounded = 0;
+    this.generateRandomNumber();
+    this.generateRandomNumber();
+  }
 
-    this.checkMove();
+  private onXSwipe(detail: GestureDetail): void {
+    if (!this.isMoving) {
+      this.isMoving = true;
+
+      if (detail.deltaX < 0) {
+        // Left move.
+        this.direction = Direction.left;
+        this.moveLeft();
+      } else {
+        // Right move.
+        this.direction = Direction.right;
+        this.moveRight();
+      }
+
+      this.checkMove();
+    }
   }
 
   private onYSwipe(detail: GestureDetail): void {
-    if (detail.deltaY < 0) {
-      // Up move.
-      this.direction = Direction.up;
-      this.moveUp();
-    } else {
-      // Down move.
-      this.direction = Direction.down;
-      this.moveDown();
-    }
+    if (!this.isMoving) {
+      this.isMoving = true;
 
-    this.checkMove();
+      if (detail.deltaY < 0) {
+        // Up move.
+        this.direction = Direction.up;
+        this.moveUp();
+      } else {
+        // Down move.
+        this.direction = Direction.down;
+        this.moveDown();
+      }
+
+      this.checkMove();
+    }
   }
 
   private initSwipe(): void {
@@ -102,6 +135,7 @@ export class GamePage implements OnInit, AfterViewInit {
   private generateRandomNumber(): void {
     let col = 0;
     let row = 0;
+    let background: string;
 
     do {
       col = Math.floor(Math.random() * this.board[0].length);
@@ -111,8 +145,25 @@ export class GamePage implements OnInit, AfterViewInit {
     this.board[row][col] = new Cell();
     const probNum4 = Math.floor(Math.random() * 100) + 1;
 
-    if (probNum4 <= 25) this.board[row][col].value = 4;
-    else this.board[row][col].value = 2;
+    if (probNum4 <= 25) {
+      this.board[row][col].value = 4;
+      background = '#eee1c9';
+    } else {
+      this.board[row][col].value = 2;
+      background = '#eee4da';
+    }
+
+    const animation = this._animationController
+      .create()
+      .addElement(this._document.getElementById(row + '' + col)!)
+      .duration(500)
+      .fromTo('background', '#727a7a', background);
+
+    animation.play();
+
+    setTimeout(() => {
+      animation.stop();
+    }, 500);
   }
 
   private moveLeft(): void {
@@ -265,6 +316,12 @@ export class GamePage implements OnInit, AfterViewInit {
 
         this.board[row][col] = null as any;
         this.hasMovement = true;
+        this.showCellAnimation({
+          row,
+          col,
+          newRow,
+          newCol,
+        });
       }
     }
   }
@@ -321,8 +378,31 @@ export class GamePage implements OnInit, AfterViewInit {
     } else if (this.hasMovement) {
       this.generateRandomNumber();
       this.hasMovement = false;
-      this.pointsRounded = 0;
+
+      if (this.pointsRounded > 0) {
+        this.showAnimationPoints();
+        this.pointsRounded = 0;
+      }
+
+      const animations = this._animationController
+        .create()
+        .addAnimation(this.animations)
+        .duration(100);
+
+      animations.play();
+
+      setTimeout(() => {
+        animations.stop();
+        this.animations = [];
+      }, 100);
+
+      setTimeout(() => {
+        this.isMoving = false;
+      }, 600);
+
       this.clearBloquedCells();
+    } else {
+      this.isMoving = false;
     }
   }
 
@@ -342,13 +422,13 @@ export class GamePage implements OnInit, AfterViewInit {
         if (this.board[row][col] === null) return false;
         else if (
           (this.board[row - 1] &&
-            this.board[row - 1][col].value === this.board[row][col].value) ||
+            this.board[row - 1][col]?.value === this.board[row][col]?.value) ||
           (this.board[row][col + 1] &&
-            this.board[row][col + 1].value === this.board[row][col].value) ||
+            this.board[row][col + 1]?.value === this.board[row][col]?.value) ||
           (this.board[row + 1] &&
-            this.board[row + 1][col].value === this.board[row][col].value) ||
+            this.board[row + 1][col]?.value === this.board[row][col]?.value) ||
           (this.board[row - 1] &&
-            this.board[row][col - 1].value === this.board[row][col].value)
+            this.board[row][col - 1]?.value === this.board[row][col]?.value)
         )
           return false;
       }
@@ -357,14 +437,63 @@ export class GamePage implements OnInit, AfterViewInit {
     return true;
   }
 
-  private newGame(): void {
-    this.board = Array.from({ length: 4 }, () => new Array(4).fill(null));
-    this.cols = Array(4)
-      .fill(0)
-      .map((_, index: number) => index);
-    this.rows = Array(4)
-      .fill(0)
-      .map((_, index: number) => index);
-    this.points = 0;
+  private showAnimationPoints(): void {
+    const elementPoints = this._document.querySelector('.game__points-scored');
+    elementPoints!.innerHTML = '+' + this.pointsRounded;
+    const animation = this._animationController
+      .create()
+      .addElement(elementPoints!)
+      .duration(1000)
+      .fromTo('transform', 'translateY(0px)', 'translateY(-60px)')
+      .fromTo('opacity', 0, 1);
+
+    animation.play();
+
+    setTimeout(() => {
+      animation.stop();
+      elementPoints!.innerHTML = '';
+    }, 1000);
+  }
+
+  private showCellAnimation({ row, col, newRow, newCol }: CellAnimation): void {
+    let cellsNumber: number;
+    switch (this.direction) {
+      case Direction.left:
+      case Direction.right:
+        cellsNumber = newCol - col;
+        break;
+
+      case Direction.down:
+      case Direction.up:
+        cellsNumber = newRow - row;
+        break;
+    }
+
+    let animation: Animation = this._animationController
+      .create()
+      .addElement(this._document.getElementById(row + '' + col)!)
+      .duration(100);
+
+    switch (this.direction) {
+      case Direction.right:
+      case Direction.left:
+        animation = animation.fromTo(
+          'transform',
+          'translateX(0px)',
+          `translateX(${cellsNumber * 60}px)`
+        );
+        break;
+
+      case Direction.down:
+      case Direction.up:
+        animation = animation.fromTo(
+          'transform',
+          'translateY(0px)',
+          `translateY(${cellsNumber * 60}px)`
+        );
+        break;
+    }
+
+    this.animations.push(animation);
   }
 }
